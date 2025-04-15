@@ -22,8 +22,7 @@ export default function ProductAssets() {
     queryKey: ['/api/watches', productId],
     queryFn: async () => {
       if (!productId) return null;
-      const response = await apiRequest(`/api/watches/${productId}`);
-      return response;
+      return apiRequest(`/api/watches/${productId}`);
     },
     enabled: !!productId
   });
@@ -33,8 +32,7 @@ export default function ProductAssets() {
     queryKey: [`/api/products/${productId}/assets`],
     queryFn: async () => {
       if (!productId) return [];
-      const response = await apiRequest(`/api/products/${productId}/assets`);
-      return response as Asset[];
+      return apiRequest(`/api/products/${productId}/assets`);
     },
     enabled: !!productId
   });
@@ -42,8 +40,7 @@ export default function ProductAssets() {
   // Delete asset mutation
   const deleteAssetMutation = useMutation({
     mutationFn: async (assetId: number) => {
-      const options = { method: 'DELETE' };
-      return apiRequest(`/api/assets/${assetId}`, options as any);
+      return apiRequest(`/api/assets/${assetId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       toast({
@@ -64,13 +61,13 @@ export default function ProductAssets() {
   });
 
   // Group assets by category
-  const imageAssets = assets?.filter(asset => 
+  const imageAssets = assets?.filter((asset: Asset) => 
     asset.category === "product-image" || 
     asset.category === "thumbnail" || 
     asset.category === "banner"
   ) || [];
   
-  const modelAssets = assets?.filter(asset => 
+  const modelAssets = assets?.filter((asset: Asset) => 
     asset.category === "model-3d"
   ) || [];
 
