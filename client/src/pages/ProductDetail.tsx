@@ -9,7 +9,8 @@ import {
   Share, 
   Heart, 
   Check, 
-  ChevronRight 
+  ChevronRight,
+  ImagePlus 
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -110,21 +111,31 @@ export default function ProductDetail() {
     <div className="min-h-screen bg-gray-50 text-gray-800">
       <Header />
       <main className="container py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center text-sm text-gray-500 mb-8">
-          <Link href="/">
-            <a className="hover:text-primary transition-colors">Home</a>
+        {/* Breadcrumb and admin actions */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center text-sm text-gray-500">
+            <Link href="/">
+              <a className="hover:text-primary transition-colors">Home</a>
+            </Link>
+            <ChevronRight className="h-4 w-4 mx-2" />
+            <Link href="/shop">
+              <a className="hover:text-primary transition-colors">Shop</a>
+            </Link>
+            <ChevronRight className="h-4 w-4 mx-2" />
+            <Link href={`/shop?category=${watch.category}`}>
+              <a className="hover:text-primary transition-colors capitalize">{watch.category}</a>
+            </Link>
+            <ChevronRight className="h-4 w-4 mx-2" />
+            <span className="text-gray-700 truncate max-w-[150px]">{watch.name}</span>
+          </div>
+          
+          {/* Admin Actions */}
+          <Link href={`/product/${watch.id}/assets`}>
+            <Button variant="outline" size="sm">
+              <ImagePlus className="mr-2 h-4 w-4" />
+              Quản lý hình ảnh & model
+            </Button>
           </Link>
-          <ChevronRight className="h-4 w-4 mx-2" />
-          <Link href="/shop">
-            <a className="hover:text-primary transition-colors">Shop</a>
-          </Link>
-          <ChevronRight className="h-4 w-4 mx-2" />
-          <Link href={`/shop?category=${watch.category}`}>
-            <a className="hover:text-primary transition-colors capitalize">{watch.category}</a>
-          </Link>
-          <ChevronRight className="h-4 w-4 mx-2" />
-          <span className="text-gray-700 truncate max-w-[150px]">{watch.name}</span>
         </div>
         
         <div className="flex flex-col md:flex-row gap-8 mb-16">
