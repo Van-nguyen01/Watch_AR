@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,6 +48,21 @@ export const waitlistSignups = pgTable("waitlist_signups", {
   createdAt: text("created_at").notNull(),
 });
 
+// Bảng quản lý assets (hình ảnh và models)
+export const assets = pgTable("assets", {
+  id: serial("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(), // image/jpeg, image/png, model/gltf-binary, etc.
+  fileSize: integer("file_size").notNull(),
+  fileUrl: text("file_url").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  category: text("category").notNull(), // product-image, model-3d, thumbnail, etc.
+  relatedProductId: integer("related_product_id").references(() => watches.id),
+  publicUrl: text("public_url").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -86,6 +101,18 @@ export const insertWaitlistSignupSchema = createInsertSchema(waitlistSignups).pi
   company: true,
 });
 
+export const insertAssetSchema = createInsertSchema(assets).pick({
+  fileName: true,
+  fileType: true,
+  fileSize: true,
+  fileUrl: true,
+  originalName: true,
+  mimeType: true,
+  category: true,
+  relatedProductId: true,
+  publicUrl: true,
+});
+
 // Form schemas
 export const loginFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -119,3 +146,5 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
 export type WaitlistSignup = typeof waitlistSignups.$inferSelect;
+export type InsertAsset = z.infer<typeof insertAssetSchema>;
+export type Asset = typeof assets.$inferSelect;
