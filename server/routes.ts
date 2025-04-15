@@ -12,6 +12,14 @@ import {
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { ZodError } from "zod";
+import { 
+  upload, 
+  uploadSingleFile, 
+  getAllAssets, 
+  getAssetById,
+  getAssetsByProduct,
+  deleteAsset 
+} from "./assets";
 
 // Helper function to handle errors
 const handleError = (error: unknown, res: Response) => {
@@ -263,6 +271,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return handleError(error, res);
     }
   });
+  
+  // ----------------------
+  // Asset management endpoints
+  // ----------------------
+  
+  // Tải lên file đơn
+  app.post('/api/assets/upload', upload.single('file'), uploadSingleFile);
+  
+  // Lấy tất cả assets
+  app.get('/api/assets', getAllAssets);
+  
+  // Lấy asset theo ID
+  app.get('/api/assets/:id', getAssetById);
+  
+  // Lấy assets theo product ID
+  app.get('/api/products/:productId/assets', getAssetsByProduct);
+  
+  // Xoá asset
+  app.delete('/api/assets/:id', deleteAsset);
 
   const httpServer = createServer(app);
 
