@@ -30,6 +30,47 @@ type Watch = {
   createdAt: string;
 };
 
+type ARViewProps = {
+  modelUrl: string;
+  onClose: () => void;
+};
+
+export function ARView({ modelUrl, onClose }: ARViewProps) {
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, zIndex: 1100 }}>Đóng AR</button>
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
+            <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+            //   <a-marker preset="hiro">
+            //     <a-entity
+            //       gltf-model="url(${modelUrl})"
+            //       scale="1 1 1"
+            //       position="0 0 0"
+            //       rotation="-90 0 0"
+            //     ></a-entity>
+            //   </a-marker>
+            //   <a-entity camera></a-entity>
+                <a-marker type="pattern" url="/markers/hiro.patt">
+                  <a-entity
+                    gltf-model="url(${modelUrl})"
+                    scale="0.1 0.1 0.1"
+                    position="0 0 0"
+                    rotation="0 0 0"
+                    onError={(e: any) => console.error('Error loading GLTF model:', e.detail?.src, e)}
+                    onLoaded={() => console.log('GLTF model loaded successfully!')}
+                  ></a-entity>
+                </a-marker>
+            </a-scene>
+            
+          `
+        }}
+      />
+    </div>
+  );
+}
+
 export default function ProductDetail() {
   // Get the watch ID from the URL
   const [, params] = useRoute("/product/:id");

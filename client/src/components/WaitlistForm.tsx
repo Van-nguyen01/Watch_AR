@@ -31,13 +31,17 @@ export function WaitlistForm() {
       name: "",
       email: "",
       company: "",
-      terms: false,
+      terms: true,
     },
   });
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: WaitlistFormValues) => {
-      const res = await apiRequest("POST", "/api/waitlist", data);
+      const res = await apiRequest("/api/waitlist", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -122,6 +126,7 @@ export function WaitlistForm() {
                 <Input 
                   placeholder="Acme Inc." 
                   {...field} 
+                  value={field.value ?? ''}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary" 
                 />
               </FormControl>

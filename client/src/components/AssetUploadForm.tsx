@@ -10,10 +10,11 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface UploadFormProps {
   productId?: number;
+  category?: string;
   onSuccess?: (data: any) => void;
 }
 
-export function AssetUploadForm({ productId, onSuccess }: UploadFormProps) {
+export function AssetUploadForm({ productId, category, onSuccess }: UploadFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
@@ -121,7 +122,7 @@ export function AssetUploadForm({ productId, onSuccess }: UploadFormProps) {
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <FormField
           control={form.control}
           name="file"

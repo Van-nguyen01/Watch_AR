@@ -1,65 +1,65 @@
-import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, varchar, int, double, boolean, timestamp, text } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  createdAt: text("created_at").notNull(),
+export const users = mysqlTable("users", {
+  id: int("id").primaryKey().autoincrement(),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const watches = pgTable("watches", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  brand: text("brand").notNull(),
+export const watches = mysqlTable("watches", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  brand: varchar("brand", { length: 255 }).notNull(),
   description: text("description").notNull(),
-  price: doublePrecision("price").notNull(),
-  imageUrl: text("image_url").notNull(),
-  modelUrl: text("model_url"), // URL to 3D model for AR
-  category: text("category").notNull(), // e.g., "luxury", "sport", "casual"
+  price: double("price").notNull(),
+  imageUrl: varchar("image_url", { length: 255 }).notNull(),
+  modelUrl: varchar("model_url", { length: 255 }), // URL to 3D model for AR
+  category: varchar("category", { length: 255 }).notNull(), // e.g., "luxury", "sport", "casual"
   inStock: boolean("in_stock").notNull().default(true),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  totalAmount: doublePrecision("total_amount").notNull(),
-  status: text("status").notNull(), // e.g., "pending", "completed", "cancelled"
-  createdAt: text("created_at").notNull(),
+export const orders = mysqlTable("orders", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().references(() => users.id),
+  totalAmount: double("total_amount").notNull(),
+  status: varchar("status", { length: 255 }).notNull(), // e.g., "pending", "completed", "cancelled"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const orderItems = pgTable("order_items", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => orders.id),
-  watchId: integer("watch_id").notNull().references(() => watches.id),
-  quantity: integer("quantity").notNull(),
-  price: doublePrecision("price").notNull(),
+export const orderItems = mysqlTable("order_items", {
+  id: int("id").primaryKey().autoincrement(),
+  orderId: int("order_id").notNull().references(() => orders.id),
+  watchId: int("watch_id").notNull().references(() => watches.id),
+  quantity: int("quantity").notNull(),
+  price: double("price").notNull(),
 });
 
-export const waitlistSignups = pgTable("waitlist_signups", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  company: text("company"),
-  createdAt: text("created_at").notNull(),
+export const waitlistSignups = mysqlTable("waitlist_signups", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  company: varchar("company", { length: 255 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Bảng quản lý assets (hình ảnh và models)
-export const assets = pgTable("assets", {
-  id: serial("id").primaryKey(),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(), // image/jpeg, image/png, model/gltf-binary, etc.
-  fileSize: integer("file_size").notNull(),
-  fileUrl: text("file_url").notNull(),
-  originalName: text("original_name").notNull(),
-  mimeType: text("mime_type").notNull(),
-  category: text("category").notNull(), // product-image, model-3d, thumbnail, etc.
-  relatedProductId: integer("related_product_id").references(() => watches.id),
-  publicUrl: text("public_url").notNull(),
+export const assets = mysqlTable("assets", {
+  id: int("id").primaryKey().autoincrement(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileType: varchar("file_type", { length: 255 }).notNull(), // image/jpeg, image/png, model/gltf-binary, etc.
+  fileSize: int("file_size").notNull(),
+  fileUrl: varchar("file_url", { length: 255 }).notNull(),
+  originalName: varchar("original_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 255 }).notNull(),
+  category: varchar("category", { length: 255 }).notNull(), // product-image, model-3d, thumbnail, etc.
+  relatedProductId: int("related_product_id").references(() => watches.id),
+  publicUrl: varchar("public_url", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -10,6 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginFormSchema } from "@shared/schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+
 import { 
   Form,
   FormControl,
@@ -22,9 +24,10 @@ import {
 type FormValues = z.infer<typeof loginFormSchema>;
 
 export default function Login() {
-  const [location, navigate] = useLocation();
+  // const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -50,6 +53,15 @@ export default function Login() {
       
       if (!response.ok) {
         throw new Error(result.message || 'Login failed');
+      }
+      
+      localStorage.setItem('auth_token', result.token);
+
+      // Check if the user is an admin
+      if (result.user?.id === 1) {
+        navigate("/admin");
+      } else {
+        navigate("/");
       }
       
       // Success - show toast and redirect

@@ -1,16 +1,45 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
+    <!-- Meta tags for SEO -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProductName - Join the Waitlist</title>
-    <meta name="description" content="The all-in-one platform designed to streamline your productivity. Join thousands waiting to transform their daily tasks." />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Experience AR technology with our Watch AR Store. Try on watches virtually and shop with ease." />
+    <meta name="keywords" content="AR, Augmented Reality, Watches, Try On, Virtual Shopping, AR.js, A-Frame" />
+    <meta name="author" content="Watch AR Store Team" />
+    <meta property="og:title" content="Watch AR Store - Try Watches in AR" />
+    <meta property="og:description" content="Experience AR technology with our Watch AR Store. Try on watches virtually and shop with ease." />
+    <meta property="og:image" content="/assets/og-image.jpg" />
+    <meta property="og:url" content="https://Watch_ar.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Watch AR Store - Try Watches in AR" />
+    <meta name="twitter:description" content="Experience AR technology with our Watch AR Store. Try on watches virtually and shop with ease." />
+    <meta name="twitter:image" content="/assets/twitter-image.jpg" />
+
+    <!-- Title -->
+    <title>Watch AR Store - Try Watches in AR</title>
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/styles/main.css" />
+
+    <!-- AR.js and A-Frame -->
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.min.js"></script>
+    <script>
+      console.log('AFRAME after AR.js script in head:', window.AFRAME);
+    </script>
   </head>
-  <body>
+  <body class="bg-gray-100 text-gray-900 font-sans">
+    <!-- Main Content -->
     <div id="root"></div>
+
+    <!-- React App -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

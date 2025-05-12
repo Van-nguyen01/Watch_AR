@@ -1,12 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { db } from "./db";
 import { 
   waitlistFormSchema, 
   insertWaitlistSignupSchema,
   loginFormSchema,
   registerFormSchema,
-  insertWatchSchema,
+  insertWatchSchema,                                                                                                                                                                                                                                                                                    
   insertOrderSchema,
   insertOrderItemSchema
 } from "@shared/schema";
@@ -20,6 +20,8 @@ import {
   getAssetsByProduct,
   deleteAsset 
 } from "./assets";
+import express from 'express';
+import fs from 'fs';
 
 // Helper function to handle errors
 const handleError = (error: unknown, res: Response) => {
@@ -33,6 +35,94 @@ const handleError = (error: unknown, res: Response) => {
   return res.status(500).json({ message: "An unexpected error occurred" });
 };
 
+const router = express.Router();
+
+// API endpoints cho watches
+router.get('/api/watches', async (req, res) => {
+    try {
+        const watches = await db.getWatches();
+        res.json(watches);
+    } catch (error) {
+        console.error('Error fetching watches:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.get('/api/watches/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const watch = await db.getARModelById(id);
+        if (!watch) {
+            return res.status(404).json({ error: 'Watch not found' });
+        }
+
+        // Thêm tiền tố URL nếu cần
+        watch.model_url = `http://localhost:5000${watch.model_url}`;
+        res.json(watch);
+    } catch (error) {
+        console.error('Error fetching watch:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// API endpoints cho AR models
+router.get('/api/watches/models', async (req, res) => {
+    try {
+        const models = await db.getARModels();
+        res.json(models);
+    } catch (error) {
+        console.error('Error fetching AR models:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.get('/api/watches/models/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).json({ error: 'Invalid model ID' });
+        }
+        const model = await db.getARModelById(id);
+        if (!model) {
+            res.status(404).json({ error: 'Model not found' });
+            return;
+        }
+        res.setHeader('Content-Type', 'application/json');
+        res.json(model);
+    } catch (error) {
+        console.error('Error fetching AR model:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+import path from 'path';
+router.get('/uploads/models/:filename', (req, res) => {
+  const filePath = path.join(__dirname, '../public/uploads/models', req.params.filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  res.setHeader('Content-Type', 'model/gltf+json'); // Đặt Content-Type cho file .gltf
+  res.sendFile(filePath, (err) => {
+      if (err) {
+          console.error('Error sending file:', err);
+          res.status(404).json({ error: 'File not found' });
+      }
+  });
+});
+
+router.get('/models/:filename', (req, res) => {
+  const filePath = path.join(__dirname, '../public/models', req.params.filename);
+  res.setHeader('Content-Type', 'model/gltf-binary');
+  res.sendFile(filePath, (err) => {
+      if (err) {
+          console.error('Error sending file:', err);
+          res.status(404).json({ error: 'File not found' });
+      }
+  });
+});
+
+export default router;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // ----------------------
   // Watch endpoints
@@ -42,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/watches', async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
-      const watches = await storage.getWatches(category);
+      const watches = await db.getWatches(category);
       return res.json(watches);
     } catch (error) {
       return handleError(error, res);
@@ -57,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid watch ID" });
       }
       
-      const watch = await storage.getWatch(id);
+      const watch = await db.getWatchById(id);
       if (!watch) {
         return res.status(404).json({ message: "Watch not found" });
       }
@@ -72,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/watches', async (req, res) => {
     try {
       const watchData = insertWatchSchema.parse(req.body);
-      const newWatch = await storage.createWatch(watchData);
+      const newWatch = await db.createWatch(watchData);
       return res.status(201).json(newWatch);
     } catch (error) {
       return handleError(error, res);
@@ -89,13 +179,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Partial validation
       const updateData = insertWatchSchema.partial().parse(req.body);
-      const updatedWatch = await storage.updateWatch(id, updateData);
+      const updatedWatch = await db.updateWatch(id, updateData);
       
       if (!updatedWatch) {
         return res.status(404).json({ message: "Watch not found" });
       }
       
       return res.json(updatedWatch);
+    } catch (error) {
+      return handleError(error, res);
+    }
+  });
+  
+  // Xóa sản phẩm
+  app.delete('/api/watches/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid watch ID" });
+      }
+      // Xóa sản phẩm
+      await db.deleteWatch(id);
+      return res.json({ message: "Watch deleted successfully" });
     } catch (error) {
       return handleError(error, res);
     }
@@ -111,20 +216,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userData = registerFormSchema.parse(req.body);
       
       // Check if username is taken
-      const existingUserByUsername = await storage.getUserByUsername(userData.username);
+      const existingUserByUsername = await db.getUserByUsername(userData.username);
       if (existingUserByUsername) {
         return res.status(409).json({ message: "Username already exists" });
       }
       
       // Check if email is taken
-      const existingUserByEmail = await storage.getUserByEmail(userData.email);
+      const existingUserByEmail = await db.getUserByEmail(userData.email);
       if (existingUserByEmail) {
         return res.status(409).json({ message: "Email already exists" });
       }
       
       // Create user (don't store confirmPassword or terms)
       const { confirmPassword, terms, ...userDataToSave } = userData;
-      const newUser = await storage.createUser(userDataToSave);
+      const newUser = await db.createUser(userDataToSave);
       
       // In a real app, you would handle sessions here
       return res.status(201).json({
@@ -146,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const loginData = loginFormSchema.parse(req.body);
       
-      const user = await storage.getUserByUsername(loginData.username);
+      const user = await db.getUserByUsername(loginData.username);
       
       // In a real app, you would check passwords securely
       if (!user || user.password !== loginData.password) {
@@ -181,11 +286,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const orders = await storage.getUserOrders(userId);
+      const orders = await db.getUserOrders(userId);
       
       // Get order items for each order
       const ordersWithItems = await Promise.all(orders.map(async (order) => {
-        const items = await storage.getOrderItems(order.id);
+        const items = await db.getOrderItems(order.id);
         return {
           ...order,
           items
@@ -207,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validOrderData = insertOrderSchema.parse(orderData);
       
       // Create the order
-      const newOrder = await storage.createOrder(validOrderData);
+      const newOrder = await db.createOrder(validOrderData);
       
       // Create order items
       if (Array.isArray(items)) {
@@ -216,12 +321,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...item,
             orderId: newOrder.id
           });
-          await storage.createOrderItem(orderItem);
+          await db.createOrderItem(orderItem);
         }
       }
       
       // Get the complete order with items
-      const orderItems = await storage.getOrderItems(newOrder.id);
+      const orderItems = await db.getOrderItems(newOrder.id);
       
       return res.status(201).json({
         ...newOrder,
@@ -242,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = waitlistFormSchema.parse(req.body);
       
       // Check if email already exists
-      const existingSignup = await storage.getWaitlistSignupByEmail(validatedData.email);
+      const existingSignup = await db.getWaitlistSignupByEmail(validatedData.email);
       if (existingSignup) {
         return res.status(409).json({ 
           message: "This email is already on our waitlist."
@@ -251,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create waitlist signup (remove terms field as it's not in the DB schema)
       const { terms, ...signupData } = validatedData;
-      const newSignup = await storage.createWaitlistSignup(signupData);
+      const newSignup = await db.createWaitlistSignup(signupData);
       
       // Return success
       return res.status(201).json({
@@ -265,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/waitlist/count', async (_req, res) => {
     try {
-      const signups = await storage.getWaitlistSignups();
+      const signups = await db.getWaitlistSignups();
       return res.json({ count: signups.length });
     } catch (error) {
       return handleError(error, res);
@@ -291,7 +396,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Xoá asset
   app.delete('/api/assets/:id', deleteAsset);
 
+  // Lấy danh sách user
+  app.get('/api/users', async (_req, res) => {
+    try {
+      const users = await db.getUsers();
+      return res.json(users);
+    } catch (error) {
+      return handleError(error, res);
+    }
+  });
+
+  // Xóa user
+  app.delete('/api/users/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      await db.deleteUser(id);
+      return res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      return handleError(error, res);
+    }
+  });
+
+  // (Tùy chọn) Sửa user
+  app.patch('/api/users/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      // Chỉ cho phép sửa một số trường nhất định
+      const { name, email } = req.body;
+      await db.updateUser(id, { name, email });
+      return res.json({ message: "User updated successfully" });
+    } catch (error) {
+      return handleError(error, res);
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
+}
+
+
+// Import or define the pool variable
+import { pool } from './db'; // Ensure this matches the actual location of your database connection
+
+export async function getARModelById(id: number) {
+    const [rows] = await pool.query('SELECT id, name, model_url FROM watches WHERE id = ?', [id]) as [Array<{ id: number; name: string; model_url: string }>, any];
+    return rows[0];
 }

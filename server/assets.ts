@@ -7,6 +7,8 @@ import sharp from 'sharp';
 import { db } from './db';
 import { assets, type InsertAsset } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { pool } from './db';
+import * as mysql from 'mysql2/promise';
 
 // Cấu hình lưu trữ của multer
 const storage = multer.diskStorage({
@@ -72,10 +74,10 @@ export const uploadSingleFile = async (req: Request, res: Response) => {
     
     const file = req.file;
     const relatedProductId = req.body.productId ? parseInt(req.body.productId) : null;
-    const category = req.body.category || 'product-image';
+    // Client nên gửi category là '3d-model' cho model 3D
+    const assetCategory = req.body.category || (file.mimetype.includes('model') || file.originalname.endsWith('.glb') || file.originalname.endsWith('.gltf') ? '3d-model' : 'product-image');
     
-    // Xử lý hình ảnh nếu là file ảnh
-    let fileUrl = `/${file.path}`;
+    let fileUrl = `/${file.path.replace(/\\/g, '/')}`; // Đảm bảo dùng dấu / cho URL
     let publicUrl = fileUrl;
     
     if (file.mimetype.startsWith('image/')) {
@@ -83,36 +85,48 @@ export const uploadSingleFile = async (req: Request, res: Response) => {
       const thumbPath = path.join(
         path.dirname(file.path),
         `thumb_${path.basename(file.path)}`
-      );
+      ).replace(/\\/g, '/');
       
       await sharp(file.path)
         .resize(300, 300, { fit: 'inside' })
-        .toFile(thumbPath);
+        .toFile(path.join(process.cwd(), thumbPath.substring(1))); // Cần đường dẫn tuyệt đối cho sharp
       
-      // Tối ưu hóa hình ảnh gốc
+      const optimizedPath = `${file.path}.optimized.jpg`;
       await sharp(file.path)
         .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85 })
-        .toFile(`${file.path}.optimized.jpg`);
+        .toFile(optimizedPath);
       
-      // Cập nhật đường dẫn
       publicUrl = `/${thumbPath}`;
+      // Xem xét việc cập nhật fileUrl để trỏ đến ảnh đã tối ưu nếu cần
+      // fileUrl = `/${optimizedPath.replace(/\\/g, '/').replace(/^public\//i, '')}`;
     }
     
-    // Lưu thông tin file vào cơ sở dữ liệu
     const newAsset: InsertAsset = {
       fileName: file.filename,
-      fileType: path.extname(file.originalname).substring(1), // Loại bỏ dấu . ở đầu phần mở rộng
+      fileType: path.extname(file.originalname).substring(1),
       fileSize: file.size,
       fileUrl,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      category,
+      category: assetCategory, // Sử dụng assetCategory đã xác định
       relatedProductId,
       publicUrl
     };
     
-    const [insertedAsset] = await db.insert(assets).values(newAsset).returning();
+    const insertedAsset = await db.createAsset(newAsset); // Giả sử db.createAsset trả về asset đã chèn
+
+    // Nếu là model 3D và có relatedProductId, cập nhật watches.modelUrl
+    if (insertedAsset && insertedAsset.relatedProductId && assetCategory === '3d-model') {
+      try {
+        console.log(`Updating watch ${insertedAsset.relatedProductId} with modelUrl: ${insertedAsset.fileUrl}`);
+        await db.updateWatch(insertedAsset.relatedProductId, { modelUrl: insertedAsset.fileUrl });
+        console.log(`Watch ${insertedAsset.relatedProductId} updated successfully.`);
+      } catch (updateError) {
+        console.error(`Failed to update watch ${insertedAsset.relatedProductId} with modelUrl:`, updateError);
+        // Không block response chính nếu chỉ update watch thất bại, nhưng cần log lại
+      }
+    }
     
     return res.status(201).json(insertedAsset);
   } catch (error) {
@@ -124,7 +138,7 @@ export const uploadSingleFile = async (req: Request, res: Response) => {
 // Lấy danh sách tất cả assets
 export const getAllAssets = async (req: Request, res: Response) => {
   try {
-    const allAssets = await db.select().from(assets);
+    const [allAssets] = await pool.execute('SELECT * FROM assets') as [any[], any];
     return res.json(allAssets);
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -139,13 +153,11 @@ export const getAssetById = async (req: Request, res: Response) => {
     if (isNaN(assetId)) {
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
-    
-    const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
-    
+    const [rows] = await pool.execute('SELECT * FROM assets WHERE id = ?', [assetId]) as [any[], any];
+    const asset = rows[0];
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
-    
     return res.json(asset);
   } catch (error) {
     console.error('Error fetching asset:', error);
@@ -160,13 +172,8 @@ export const getAssetsByProduct = async (req: Request, res: Response) => {
     if (isNaN(productId)) {
       return res.status(400).json({ error: 'Invalid product ID' });
     }
-    
-    const productAssets = await db
-      .select()
-      .from(assets)
-      .where(eq(assets.relatedProductId, productId));
-    
-    return res.json(productAssets);
+    const assets = await db.getAssetsByProductId(productId);
+    return res.json(assets);
   } catch (error) {
     console.error('Error fetching product assets:', error);
     return res.status(500).json({ error: 'Failed to fetch product assets' });
@@ -180,20 +187,16 @@ export const deleteAsset = async (req: Request, res: Response) => {
     if (isNaN(assetId)) {
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
-    
     // Lấy thông tin asset trước khi xoá
-    const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
-    
+    const [rows] = await pool.execute('SELECT * FROM assets WHERE id = ?', [assetId]) as [any[], any];
+    const asset = rows[0];
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
-    
     // Xoá file vật lý
-    const filePath = path.join(process.cwd(), asset.fileUrl.substring(1)); // Bỏ dấu / ở đầu
+    const filePath = path.join(process.cwd(), asset.fileUrl.substring(1));
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      
-      // Xoá thumbnail nếu là hình ảnh
       if (asset.mimeType.startsWith('image/')) {
         const thumbPath = path.join(
           path.dirname(filePath),
@@ -204,10 +207,8 @@ export const deleteAsset = async (req: Request, res: Response) => {
         }
       }
     }
-    
     // Xoá khỏi database
-    await db.delete(assets).where(eq(assets.id, assetId));
-    
+    await pool.execute('DELETE FROM assets WHERE id = ?', [assetId]);
     return res.json({ message: 'Asset deleted successfully' });
   } catch (error) {
     console.error('Error deleting asset:', error);

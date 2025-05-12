@@ -1,24 +1,30 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path, { dirname } from "path";
+import themeJson from "@replit/vite-plugin-shadcn-theme-json";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
+import { cartographer } from "@replit/vite-plugin-cartographer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
+  server: {
+    host: "0.0.0.0",
+    hmr: {
+      clientPort: 5000, // Sử dụng cổng 5000 thay vì 443
+      overlay: false,
+    },
+  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
-    themePlugin(),
+    themeJson(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
+          cartographer(),
         ]
       : []),
   ],

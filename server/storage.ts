@@ -5,7 +5,7 @@ import {
   orders, type Order, type InsertOrder,
   orderItems, type OrderItem, type InsertOrderItem
 } from "@shared/schema";
-
+      
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -69,35 +69,16 @@ export class MemStorage implements IStorage {
   private initializeWatches() {
     const demoWatches: InsertWatch[] = [
       {
-        name: "Classic Elegance",
+        name: "Apple Watch",
         brand: "LuxWatch",
-        description: "A timeless classic watch with Swiss movement and genuine leather strap.",
-        price: 299.99,
-        imageUrl: "/images/watches/classic-elegance.jpg",
-        modelUrl: "/models/watches/classic-elegance.glb",
+        description: "Phù hợp với mọi lứa tuổi, thiết kế hiện đại và sang trọng.",
+        price: 260.000,
+        imageUrl: "/uploads/images/Screenshot 2025-05-11 073110.png",
+        modelUrl: "uploads/models/watches/classic-elegance.glb",
         category: "luxury",
         inStock: true
       },
-      {
-        name: "Sports Pro",
-        brand: "ActiveTime",
-        description: "Water-resistant sports watch perfect for active lifestyles.",
-        price: 149.99,
-        imageUrl: "/images/watches/sports-pro.jpg",
-        modelUrl: "/models/watches/sports-pro.glb",
-        category: "sport",
-        inStock: true
-      },
-      {
-        name: "Minimalist",
-        brand: "SimpleStyle",
-        description: "Clean, minimalist design for the modern professional.",
-        price: 199.99,
-        imageUrl: "/images/watches/minimalist.jpg",
-        modelUrl: "/models/watches/minimalist.glb",
-        category: "casual",
-        inStock: true
-      }
+      
     ];
 
     demoWatches.forEach(watch => {

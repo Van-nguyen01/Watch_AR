@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Watch, Sliders, Eye, ChevronsUpDown, X, Smartphone, Check } from "lucide-react";
 import { 
@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { ARButton } from "@/components/ARButton";
 
 // Type for watches
 type Watch = {
@@ -62,49 +63,68 @@ type Watch = {
 function ARPreview({ watch }: { watch: Watch }) {
   const { toast } = useToast();
   const [isActive, setIsActive] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Start AR preview
   const startARPreview = async () => {
+    console.log("startARPreview function called");
     try {
-      if (!videoRef.current) return;
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      console.log("Requesting camera access...");
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
       });
-      
-      videoRef.current.srcObject = stream;
+      console.log("Camera access granted, stream received:", cameraStream);
+      setStream(cameraStream);
       setIsActive(true);
       
       toast({
         title: "AR Preview Started",
         description: "Position your wrist in front of the camera",
       });
+      console.log("Success toast displayed");
       
     } catch (err) {
-      console.error("Error accessing camera:", err);
+      console.error("Error in startARPreview catch block:", err);
+      
+      // Kiểm tra kiểu lỗi trước khi truy cập message
+      let errorMessage = "An unknown error occurred. Please check console.";
+      if (err instanceof Error) {
+        errorMessage = `Please check permissions or console. Error: ${err.message}`;
+      }
+
       toast({
-        title: "Camera access denied",
-        description: "Please allow camera access to use AR features",
+        title: "Camera access denied or Error",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
   
+  // useEffect để gán stream vào video element KHI NÓ ĐÃ RENDER
+  useEffect(() => {
+    if (isActive && stream && videoRef.current) {
+      console.log("useEffect: Assigning stream to video element");
+      videoRef.current.srcObject = stream;
+    }
+  }, [isActive, stream]);
+  
   // Stop AR preview
   const stopARPreview = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setIsActive(false);
+    console.log("stopARPreview called");
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      console.log("Camera tracks stopped");
     }
+    setStream(null);
+    setIsActive(false);
   };
   
   // Clean up when component unmounts
   useEffect(() => {
     return () => {
+      console.log("ARPreview cleanup effect");
       stopARPreview();
     };
   }, []);
@@ -138,6 +158,7 @@ function ARPreview({ watch }: { watch: Watch }) {
               <img 
                 src={watch.imageUrl}
                 alt={watch.name}
+                onError={(e) => { e.currentTarget.src = '/default-watch.png'; }}
                 className="h-32 w-32 object-contain mb-6"
               />
               <h3 className="text-xl font-medium mb-2">{watch.name}</h3>
@@ -169,6 +190,7 @@ function ARPreview({ watch }: { watch: Watch }) {
                 <img 
                   src={watch.imageUrl}
                   alt={watch.name}
+                  onError={(e) => { e.currentTarget.src = '/default-watch.png'; }}
                   className="h-24 w-24 object-contain"
                   style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}
                 />
@@ -185,7 +207,7 @@ function ARPreview({ watch }: { watch: Watch }) {
                     Stop AR
                   </Button>
                   
-                  <Link href={`/try-on/${watch.id}`}>
+                  <Link to={`/try-on/${watch.id}`}>
                     <Button>
                       Full AR Experience
                     </Button>
@@ -198,14 +220,16 @@ function ARPreview({ watch }: { watch: Watch }) {
         
         <div className="flex justify-between mt-4">
           <div>
-            <div className="text-lg font-bold">${watch.price.toFixed(2)}</div>
+            <div className="text-lg font-bold">
+              {watch.price.toLocaleString('vi-VN')} ₫
+            </div>
             <div className="text-sm text-gray-500">{watch.brand}</div>
           </div>
           <div className="flex gap-2">
             <SheetClose asChild>
               <Button variant="outline">Close</Button>
             </SheetClose>
-            <Link href={`/product/${watch.id}`}>
+            <Link to={`/product/${watch.id}`}>
               <Button>View Details</Button>
             </Link>
           </div>
@@ -218,28 +242,33 @@ function ARPreview({ watch }: { watch: Watch }) {
 // Product card component
 function ProductCard({ watch }: { watch: Watch }) {
   const [showQuickAR, setShowQuickAR] = useState(false);
-  
+
   return (
-    <div 
+    <div
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative group"
       onMouseEnter={() => setShowQuickAR(true)}
       onMouseLeave={() => setShowQuickAR(false)}
     >
       <div className="h-64 overflow-hidden relative">
-        <img 
-          src={watch.imageUrl} 
-          alt={watch.name} 
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        <img
+          src={watch.imageUrl}
+          alt={watch.name}
+          onError={(e) => {
+            e.currentTarget.src = "/default-watch.png";
+          }}
+          className="w-full h-full object-cover"
         />
-        
+
         {/* AR quick preview button */}
-        <div className={cn(
-          "absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity",
-          showQuickAR ? "opacity-100" : "opacity-0"
-        )}>
-          <ARPreview watch={watch} />
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity",
+            showQuickAR ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <ARButton watchId={watch.id} variant="quick" />
         </div>
-        
+
         {/* Category badge */}
         <div className="absolute top-2 left-2">
           <Badge variant="secondary" className="capitalize bg-white/80 backdrop-blur-sm">
@@ -247,19 +276,19 @@ function ProductCard({ watch }: { watch: Watch }) {
           </Badge>
         </div>
       </div>
-      
+
       <div className="p-6">
         <div className="mb-4">
           <h3 className="text-xl font-medium mb-1">{watch.name}</h3>
           <p className="text-gray-500">{watch.brand}</p>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-lg font-bold">${watch.price.toFixed(2)}</span>
+          <span className="text-lg font-bold">
+            {watch.price.toLocaleString("vi-VN")} ₫
+          </span>
           <div className="flex gap-2">
-            <Link href={`/try-on/${watch.id}`}>
-              <Button size="sm" variant="outline">Try AR</Button>
-            </Link>
-            <Link href={`/product/${watch.id}`}>
+            <ARButton watchId={watch.id} />
+            <Link to={`/product/${watch.id}`}>
               <Button size="sm">View</Button>
             </Link>
           </div>
@@ -271,19 +300,34 @@ function ProductCard({ watch }: { watch: Watch }) {
 
 // Main Shop component
 export default function Shop() {
-  const [location, setLocation] = useLocation();
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  console.log("Shop component mounted");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const urlParams = new URLSearchParams(location.search);
   const initialCategory = urlParams.get('category') || 'all';
   const { toast } = useToast();
   
   // Filter states
   const [category, setCategory] = useState<string>(initialCategory);
   const [sortBy, setSortBy] = useState<string>("default");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [arModelsOnly, setArModelsOnly] = useState<boolean>(false);
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  
+  // Đồng bộ state filter với URL mỗi khi location.search thay đổi
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    setCategory(urlParams.get('category') || 'all');
+    setSelectedBrands(urlParams.get('brands') ? urlParams.get('brands')!.split(',') : []);
+    setPriceRange([
+      urlParams.get('minPrice') ? parseInt(urlParams.get('minPrice')!) : 0,
+      urlParams.get('maxPrice') ? parseInt(urlParams.get('maxPrice')!) : 10000000,
+    ]);
+    setArModelsOnly(urlParams.get('arOnly') === 'true');
+    setInStockOnly(urlParams.get('inStock') === 'true');
+  }, [location.search]);
   
   // Fetch watches
   const { data: watches, isLoading } = useQuery({
@@ -291,33 +335,61 @@ export default function Shop() {
     queryFn: async () => {
       const res = await fetch('/api/watches');
       if (!res.ok) throw new Error('Failed to fetch watches');
-      return res.json() as Promise<Watch[]>;
+      const data = await res.json() as Watch[];
+  
+      // Xử lý imageUrl cho từng phần tử trong mảng watches
+      return data.map(watch => ({
+        ...watch,
+        // Sử dụng đúng trường từ API
+          imageUrl: watch.imageUrl.startsWith('http')
+            ? watch.imageUrl
+            : `http://localhost:5000${watch.imageUrl.replace(/^\/+/, '')}` // Loại bỏ dấu `/` dư thừa
+         
+          
+      }));
+      
     }
   });
   
+  if (isLoading) {setArModelsOnly
+    console.log("Loading watches...");
+  } else if (watches) {
+    console.log("Watches from API:", watches);
+  } else {
+    console.log("No watches found or an error occurred.");
+  }
+  
+  // console.log("Watches from API:", watches);
+  console.log("category", category);
+  console.log("selectedBrands", selectedBrands);
+  console.log("arModelsOnly", arModelsOnly);
+  console.log("inStockOnly", inStockOnly);
+  console.log("priceRange", priceRange);
+ 
+
   // Extract unique brands from watches
   const availableBrands = watches ? 
     Array.from(new Set(watches.map(watch => watch.brand))) : [];
   
   // Apply all filters
-  const filteredWatches = watches ? watches.filter(watch => {
-    // Category filter
-    if (category !== 'all' && watch.category !== category) return false;
-    
-    // Price range filter
-    if (watch.price < priceRange[0] || watch.price > priceRange[1]) return false;
-    
-    // Brand filter
-    if (selectedBrands.length > 0 && !selectedBrands.includes(watch.brand)) return false;
-    
-    // AR models only filter
-    if (arModelsOnly && !watch.modelUrl) return false;
-    
-    // In stock only filter
-    if (inStockOnly && !watch.inStock) return false;
-    
+  const filteredWatches = (watches ?? []).filter(watch => {
+    if (category !== 'all' && watch.category !== category) {
+      return false;
+    }
+    if (watch.price < priceRange[0] || watch.price > priceRange[1]) {
+      return false;
+    }
+    if (selectedBrands.length > 0 && !selectedBrands.includes(watch.brand)) {
+      return false;
+    }
+    if (arModelsOnly && !watch.modelUrl) {
+      return false;
+    }
+    if (inStockOnly && !watch.inStock) {
+      return false;
+    }
     return true;
-  }) : [];
+  });
   
   // Sort watches based on selected option
   const sortedWatches = filteredWatches ? [...filteredWatches].sort((a, b) => {
@@ -335,6 +407,9 @@ export default function Shop() {
     }
   }) : [];
   
+  console.log("Filtered watches:", filteredWatches);
+  console.log("Sorted watches:", sortedWatches);
+  
   // Update URL with filter params
   const updateUrlWithFilters = () => {
     const newParams = new URLSearchParams();
@@ -342,7 +417,7 @@ export default function Shop() {
     if (category !== 'all') newParams.set('category', category);
     if (selectedBrands.length > 0) newParams.set('brands', selectedBrands.join(','));
     if (priceRange[0] > 0) newParams.set('minPrice', priceRange[0].toString());
-    if (priceRange[1] < 5000) newParams.set('maxPrice', priceRange[1].toString());
+    if (priceRange[1] < 10000000) newParams.set('maxPrice', priceRange[1].toString());
     if (arModelsOnly) newParams.set('arOnly', 'true');
     if (inStockOnly) newParams.set('inStock', 'true');
     
@@ -350,7 +425,7 @@ export default function Shop() {
       ? `/shop?${newParams.toString()}` 
       : '/shop';
     
-    setLocation(newLocation);
+    navigate(newLocation);
   };
   
   // Handle category change
@@ -362,12 +437,12 @@ export default function Shop() {
   // Reset all filters
   const resetFilters = () => {
     setCategory('all');
-    setPriceRange([0, 5000]);
+    setPriceRange([0, 10000000]);
     setSelectedBrands([]);
     setArModelsOnly(false);
     setInStockOnly(false);
     setSortBy('default');
-    setLocation('/shop');
+    navigate("/shop");
     
     toast({
       title: "Filters Reset",
@@ -417,7 +492,7 @@ export default function Shop() {
                       <Badge className="ml-2">
                         {selectedBrands.length + (category !== 'all' ? 1 : 0) + 
                          (arModelsOnly ? 1 : 0) + (inStockOnly ? 1 : 0) + 
-                         ((priceRange[0] > 0 || priceRange[1] < 5000) ? 1 : 0)}
+                         ((priceRange[0] > 0 || priceRange[1] < 10000000) ? 1 : 0)}
                       </Badge>
                     </Button>
                   </SheetTrigger>
@@ -459,13 +534,13 @@ export default function Shop() {
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-sm font-medium">Price Range</h3>
                           <span className="text-sm text-gray-500">
-                            ${priceRange[0]} - ${priceRange[1]}
+                            {priceRange[0].toLocaleString('vi-VN')} ₫ - {priceRange[1].toLocaleString('vi-VN')} ₫
                           </span>
                         </div>
                         <Slider
                           min={0}
-                          max={5000}
-                          step={100}
+                          max={10000000}
+                          step={100000}
                           value={priceRange}
                           onValueChange={(value) => setPriceRange(value as [number, number])}
                           className="my-4"
@@ -482,7 +557,7 @@ export default function Shop() {
                           <Input
                             type="number"
                             min={priceRange[0]}
-                            max={5000}
+                            max={10000000}
                             value={priceRange[1]}
                             onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                             className="w-20"
@@ -634,13 +709,17 @@ export default function Shop() {
                     <AccordionContent>
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm">${priceRange[0]}</span>
-                          <span className="text-sm">${priceRange[1]}</span>
+                          <span className="text-sm">
+                            {priceRange[0].toLocaleString('vi-VN')} ₫
+                          </span>
+                          <span className="text-sm">
+                            {priceRange[1].toLocaleString('vi-VN')} ₫
+                          </span>
                         </div>
                         <Slider
                           min={0}
-                          max={5000}
-                          step={100}
+                          max={10000000}
+                          step={100000}
                           value={priceRange}
                           onValueChange={(value) => setPriceRange(value as [number, number])}
                         />
@@ -656,7 +735,7 @@ export default function Shop() {
                           <Input
                             type="number"
                             min={priceRange[0]}
-                            max={5000}
+                            max={10000000}
                             value={priceRange[1]}
                             onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                             className="w-full"
@@ -746,7 +825,7 @@ export default function Shop() {
             <div className="flex-1">
               {/* Active filters display */}
               {(selectedBrands.length > 0 || category !== 'all' || arModelsOnly || inStockOnly || 
-                priceRange[0] > 0 || priceRange[1] < 5000) && (
+                priceRange[0] > 0 || priceRange[1] < 10000000) && (
                 <div className="mb-4 flex flex-wrap gap-2 items-center">
                   <span className="text-sm text-gray-500">Active filters:</span>
                   {category !== 'all' && (
@@ -767,12 +846,12 @@ export default function Shop() {
                       />
                     </Badge>
                   ))}
-                  {(priceRange[0] > 0 || priceRange[1] < 5000) && (
+                  {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
                     <Badge variant="secondary" className="flex items-center gap-1">
-                      ${priceRange[0]} - ${priceRange[1]}
+                      {priceRange[0].toLocaleString('vi-VN')} ₫ - {priceRange[1].toLocaleString('vi-VN')} ₫
                       <X 
                         className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setPriceRange([0, 5000])}
+                        onClick={() => setPriceRange([0, 10000000])}
                       />
                     </Badge>
                   )}
