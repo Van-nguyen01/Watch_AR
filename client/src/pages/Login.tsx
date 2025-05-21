@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginFormSchema } from "@shared/schema";
+import { loginFormSchema, users } from "@shared/schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +24,7 @@ import {
 type FormValues = z.infer<typeof loginFormSchema>;
 
 export default function Login() {
-  // const [location, navigate] = useLocation();
+ 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function Login() {
   
   async function onSubmit(data: FormValues) {
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -48,33 +48,32 @@ export default function Login() {
         },
         body: JSON.stringify(data),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Login failed');
       }
-      
-      localStorage.setItem('auth_token', result.token);
 
-      // Check if the user is an admin
+      localStorage.setItem('auth_token', result.token);
+      localStorage.setItem('userId', result.user?.id);
+  
       if (result.user?.id === 1) {
+        localStorage.setItem('role', 'admin');
+        toast({
+          title: "Login successful",
+          description: "Welcome admin!",
+        });
         navigate("/admin");
       } else {
+        localStorage.setItem('role', 'user');
+        toast({
+          title: "Login successful",
+          description: "Welcome back to WatchAR!",
+        });
         navigate("/");
       }
-      
-      // Success - show toast and redirect
-      toast({
-        title: "Login successful",
-        description: "Welcome back to WatchAR!",
-      });
-      
-      // Redirect to previous page or home
-      navigate("/");
-      
     } catch (error) {
-      // Show error toast
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Please check your credentials and try again",
@@ -159,11 +158,12 @@ export default function Login() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/register">
-                  <a className="text-primary hover:underline font-medium">
-                    Sign up
-                  </a>
-                </Link>
+                <span
+                  className="text-primary hover:underline font-medium cursor-pointer"
+                  onClick={() => window.location.href = "/register"}
+                >
+                  Sign up
+                </span>
               </p>
             </div>
           </div>
@@ -173,3 +173,12 @@ export default function Login() {
     </div>
   );
 }
+
+<tbody>
+  {Array.isArray(users) && users.map((u: any) => (
+    <tr key={u.id}>
+      <td>{u.name}</td>
+      {/* ... */}
+    </tr>
+  ))}
+</tbody>

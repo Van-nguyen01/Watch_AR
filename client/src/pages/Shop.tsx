@@ -44,8 +44,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ARButton } from "@/components/ARButton";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
-// Type for watches
+
 type Watch = {
   id: number;
   name: string;
@@ -53,21 +54,21 @@ type Watch = {
   description: string;
   price: number;
   imageUrl: string;
-  modelUrl: string | null;
+  modelUrl: null | string;
   category: string;
   inStock: boolean;
   createdAt: string;
 };
 
-// AR preview component
+
 function ARPreview({ watch }: { watch: Watch }) {
+  useAuthGuard();
   const { toast } = useToast();
   const [isActive, setIsActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Start AR preview
   const startARPreview = async () => {
     console.log("startARPreview function called");
     try {
@@ -87,8 +88,7 @@ function ARPreview({ watch }: { watch: Watch }) {
       
     } catch (err) {
       console.error("Error in startARPreview catch block:", err);
-      
-      // Kiểm tra kiểu lỗi trước khi truy cập message
+   
       let errorMessage = "An unknown error occurred. Please check console.";
       if (err instanceof Error) {
         errorMessage = `Please check permissions or console. Error: ${err.message}`;
@@ -101,16 +101,14 @@ function ARPreview({ watch }: { watch: Watch }) {
       });
     }
   };
-  
-  // useEffect để gán stream vào video element KHI NÓ ĐÃ RENDER
+
   useEffect(() => {
     if (isActive && stream && videoRef.current) {
       console.log("useEffect: Assigning stream to video element");
       videoRef.current.srcObject = stream;
     }
   }, [isActive, stream]);
-  
-  // Stop AR preview
+
   const stopARPreview = () => {
     console.log("stopARPreview called");
     if (stream) {
@@ -121,7 +119,6 @@ function ARPreview({ watch }: { watch: Watch }) {
     setIsActive(false);
   };
   
-  // Clean up when component unmounts
   useEffect(() => {
     return () => {
       console.log("ARPreview cleanup effect");
@@ -158,7 +155,7 @@ function ARPreview({ watch }: { watch: Watch }) {
               <img 
                 src={watch.imageUrl}
                 alt={watch.name}
-                onError={(e) => { e.currentTarget.src = '/default-watch.png'; }}
+                onError={(e) => { e.currentTarget.src = '/uploads/images/default.jpg'; }}
                 className="h-32 w-32 object-contain mb-6"
               />
               <h3 className="text-xl font-medium mb-2">{watch.name}</h3>
@@ -190,7 +187,7 @@ function ARPreview({ watch }: { watch: Watch }) {
                 <img 
                   src={watch.imageUrl}
                   alt={watch.name}
-                  onError={(e) => { e.currentTarget.src = '/default-watch.png'; }}
+                  onError={(e) => { e.currentTarget.src = '/uploads/images/default.jpg'; }}
                   className="h-24 w-24 object-contain"
                   style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}
                 />
@@ -239,36 +236,57 @@ function ARPreview({ watch }: { watch: Watch }) {
   );
 }
 
-// Product card component
 function ProductCard({ watch }: { watch: Watch }) {
-  const [showQuickAR, setShowQuickAR] = useState(false);
+  const { toast } = useToast();
+
+  const handleAddToCart = async () => {
+    try {
+      const userId = localStorage.getItem("userId") || 1;
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          watchId: watch.id,
+          quantity: 1,
+        }),
+      });
+      if (res.ok) {
+        toast({
+          title: "Added to cart",
+          description: `${watch.name} has been added to your cart.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add to cart.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative group"
-      onMouseEnter={() => setShowQuickAR(true)}
-      onMouseLeave={() => setShowQuickAR(false)}
-    >
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative group">
       <div className="h-64 overflow-hidden relative">
         <img
           src={watch.imageUrl}
           alt={watch.name}
           onError={(e) => {
-            e.currentTarget.src = "/default-watch.png";
+            e.currentTarget.src = "/uploads/images/default.jpg";
           }}
           className="w-full h-full object-cover"
         />
-
-        {/* AR quick preview button */}
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity",
-            showQuickAR ? "opacity-100" : "opacity-0"
-          )}
-        >
-          <ARButton watchId={watch.id} variant="quick" />
-        </div>
-
         {/* Category badge */}
         <div className="absolute top-2 left-2">
           <Badge variant="secondary" className="capitalize bg-white/80 backdrop-blur-sm">
@@ -282,15 +300,25 @@ function ProductCard({ watch }: { watch: Watch }) {
           <h3 className="text-xl font-medium mb-1">{watch.name}</h3>
           <p className="text-gray-500">{watch.brand}</p>
         </div>
+       
+        <div className="mb-4 flex justify-center">
+          <Link to={`/try-on/${watch.id}`}>
+            <Button size="sm" variant="default">
+              Try On
+            </Button>
+          </Link>
+        </div>
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold">
             {watch.price.toLocaleString("vi-VN")} ₫
           </span>
           <div className="flex gap-2">
-            <ARButton watchId={watch.id} />
             <Link to={`/product/${watch.id}`}>
-              <Button size="sm">View</Button>
+              <Button size="sm" variant="outline">View</Button>
             </Link>
+            <Button size="sm" variant="outline" onClick={handleAddToCart}>
+              Add to Cart
+            </Button>
           </div>
         </div>
       </div>
@@ -298,7 +326,7 @@ function ProductCard({ watch }: { watch: Watch }) {
   );
 }
 
-// Main Shop component
+
 export default function Shop() {
   console.log("Shop component mounted");
   const location = useLocation();
@@ -306,11 +334,10 @@ export default function Shop() {
   const urlParams = new URLSearchParams(location.search);
   const initialCategory = urlParams.get('category') || 'all';
   const { toast } = useToast();
-  
-  // Filter states
+
   const [category, setCategory] = useState<string>(initialCategory);
   const [sortBy, setSortBy] = useState<string>("default");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [arModelsOnly, setArModelsOnly] = useState<boolean>(false);
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
@@ -323,30 +350,29 @@ export default function Shop() {
     setSelectedBrands(urlParams.get('brands') ? urlParams.get('brands')!.split(',') : []);
     setPriceRange([
       urlParams.get('minPrice') ? parseInt(urlParams.get('minPrice')!) : 0,
-      urlParams.get('maxPrice') ? parseInt(urlParams.get('maxPrice')!) : 10000000,
+      urlParams.get('maxPrice') ? parseInt(urlParams.get('maxPrice')!) : 1000000000,
     ]);
     setArModelsOnly(urlParams.get('arOnly') === 'true');
     setInStockOnly(urlParams.get('inStock') === 'true');
   }, [location.search]);
   
-  // Fetch watches
+
   const { data: watches, isLoading } = useQuery({
     queryKey: ['/api/watches'],
     queryFn: async () => {
       const res = await fetch('/api/watches');
       if (!res.ok) throw new Error('Failed to fetch watches');
       const data = await res.json() as Watch[];
+
+      return data.map((watch: any) => ({
+      ...watch,
+      imageUrl: (watch.image_url || "").startsWith('http')
+        ? watch.image_url
+        : `http://localhost:5000${watch.image_url || ""}`,
+      modelUrl: watch.model_url,
+      inStock: Boolean(watch.in_stock),
   
-      // Xử lý imageUrl cho từng phần tử trong mảng watches
-      return data.map(watch => ({
-        ...watch,
-        // Sử dụng đúng trường từ API
-          imageUrl: watch.imageUrl.startsWith('http')
-            ? watch.imageUrl
-            : `http://localhost:5000${watch.imageUrl.replace(/^\/+/, '')}` // Loại bỏ dấu `/` dư thừa
-         
-          
-      }));
+    }));
       
     }
   });
@@ -359,19 +385,15 @@ export default function Shop() {
     console.log("No watches found or an error occurred.");
   }
   
-  // console.log("Watches from API:", watches);
   console.log("category", category);
   console.log("selectedBrands", selectedBrands);
   console.log("arModelsOnly", arModelsOnly);
   console.log("inStockOnly", inStockOnly);
   console.log("priceRange", priceRange);
- 
 
-  // Extract unique brands from watches
   const availableBrands = watches ? 
     Array.from(new Set(watches.map(watch => watch.brand))) : [];
-  
-  // Apply all filters
+
   const filteredWatches = (watches ?? []).filter(watch => {
     if (category !== 'all' && watch.category !== category) {
       return false;
@@ -391,7 +413,7 @@ export default function Shop() {
     return true;
   });
   
-  // Sort watches based on selected option
+
   const sortedWatches = filteredWatches ? [...filteredWatches].sort((a, b) => {
     switch (sortBy) {
       case "price-low-to-high":
@@ -410,14 +432,14 @@ export default function Shop() {
   console.log("Filtered watches:", filteredWatches);
   console.log("Sorted watches:", sortedWatches);
   
-  // Update URL with filter params
+
   const updateUrlWithFilters = () => {
     const newParams = new URLSearchParams();
     
     if (category !== 'all') newParams.set('category', category);
     if (selectedBrands.length > 0) newParams.set('brands', selectedBrands.join(','));
     if (priceRange[0] > 0) newParams.set('minPrice', priceRange[0].toString());
-    if (priceRange[1] < 10000000) newParams.set('maxPrice', priceRange[1].toString());
+    if (priceRange[1] < 100000000000) newParams.set('maxPrice', priceRange[1].toString());
     if (arModelsOnly) newParams.set('arOnly', 'true');
     if (inStockOnly) newParams.set('inStock', 'true');
     
@@ -434,10 +456,10 @@ export default function Shop() {
     updateUrlWithFilters();
   };
   
-  // Reset all filters
+
   const resetFilters = () => {
     setCategory('all');
-    setPriceRange([0, 10000000]);
+    setPriceRange([0, 100000000000]);
     setSelectedBrands([]);
     setArModelsOnly(false);
     setInStockOnly(false);
@@ -449,8 +471,7 @@ export default function Shop() {
       description: "All filters have been cleared",
     });
   };
-  
-  // Apply filters with toast feedback
+
   const applyFilters = () => {
     updateUrlWithFilters();
     setShowFilters(false);
@@ -466,7 +487,7 @@ export default function Shop() {
       <Header />
       <main className="flex-grow">
         <div className="container py-8">
-          {/* Shop header with title and filters */}
+    
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">Watch Collection</h1>
@@ -476,7 +497,7 @@ export default function Shop() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* Mobile: Filter button */}
+      
               <div className="block md:hidden w-full">
                 <Sheet>
                   <SheetTrigger asChild>
@@ -492,7 +513,7 @@ export default function Shop() {
                       <Badge className="ml-2">
                         {selectedBrands.length + (category !== 'all' ? 1 : 0) + 
                          (arModelsOnly ? 1 : 0) + (inStockOnly ? 1 : 0) + 
-                         ((priceRange[0] > 0 || priceRange[1] < 10000000) ? 1 : 0)}
+                         ((priceRange[0] > 0 || priceRange[1] < 100000000000) ? 1 : 0)}
                       </Badge>
                     </Button>
                   </SheetTrigger>
@@ -508,7 +529,7 @@ export default function Shop() {
                     </SheetHeader>
                     
                     <div className="py-4 flex flex-col gap-5">
-                      {/* Category filter */}
+               
                       <div>
                         <h3 className="text-sm font-medium mb-3">Category</h3>
                         <div className="grid grid-cols-2 gap-2">
@@ -528,8 +549,7 @@ export default function Shop() {
                           ))}
                         </div>
                       </div>
-                      
-                      {/* Price range filter */}
+                   
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-sm font-medium">Price Range</h3>
@@ -539,7 +559,7 @@ export default function Shop() {
                         </div>
                         <Slider
                           min={0}
-                          max={10000000}
+                          max={100000000000}
                           step={100000}
                           value={priceRange}
                           onValueChange={(value) => setPriceRange(value as [number, number])}
@@ -557,7 +577,7 @@ export default function Shop() {
                           <Input
                             type="number"
                             min={priceRange[0]}
-                            max={10000000}
+                            max={100000000000}
                             value={priceRange[1]}
                             onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                             className="w-20"
@@ -592,8 +612,7 @@ export default function Shop() {
                           ))}
                         </div>
                       </div>
-                      
-                      {/* Additional filters */}
+                   
                       <div className="space-y-2">
                         <h3 className="text-sm font-medium mb-3">Additional Filters</h3>
                         <div className="flex items-center space-x-2">
@@ -637,7 +656,6 @@ export default function Shop() {
                 </Sheet>
               </div>
               
-              {/* Sort by dropdown (mobile and desktop) */}
               <div className="w-full sm:w-48">
                 <Select 
                   value={sortBy} 
@@ -658,9 +676,8 @@ export default function Shop() {
             </div>
           </div>
           
-          {/* Main content with filters and products */}
           <div className="flex flex-col md:flex-row gap-8">
-            {/* Desktop: Sidebar filters */}
+  
             <div className="hidden md:block w-64 flex-shrink-0">
               <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24">
                 <div className="flex items-center justify-between mb-6">
@@ -676,7 +693,7 @@ export default function Shop() {
                 </div>
                 
                 <Accordion type="multiple" defaultValue={["category", "price", "brand"]}>
-                  {/* Category filter */}
+                
                   <AccordionItem value="category" className="border-b">
                     <AccordionTrigger className="py-3 text-sm hover:no-underline">
                       Category
@@ -701,7 +718,6 @@ export default function Shop() {
                     </AccordionContent>
                   </AccordionItem>
                   
-                  {/* Price range filter */}
                   <AccordionItem value="price" className="border-b">
                     <AccordionTrigger className="py-3 text-sm hover:no-underline">
                       Price Range
@@ -718,7 +734,7 @@ export default function Shop() {
                         </div>
                         <Slider
                           min={0}
-                          max={10000000}
+                          max={100000000000}
                           step={100000}
                           value={priceRange}
                           onValueChange={(value) => setPriceRange(value as [number, number])}
@@ -735,7 +751,7 @@ export default function Shop() {
                           <Input
                             type="number"
                             min={priceRange[0]}
-                            max={10000000}
+                            max={100000000000}
                             value={priceRange[1]}
                             onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                             className="w-full"
@@ -745,7 +761,6 @@ export default function Shop() {
                     </AccordionContent>
                   </AccordionItem>
                   
-                  {/* Brand filter */}
                   <AccordionItem value="brand" className="border-b">
                     <AccordionTrigger className="py-3 text-sm hover:no-underline">
                       Brand
@@ -776,8 +791,7 @@ export default function Shop() {
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                  
-                  {/* Additional filters */}
+                 
                   <AccordionItem value="additional">
                     <AccordionTrigger className="py-3 text-sm hover:no-underline">
                       Additional Filters
@@ -821,11 +835,9 @@ export default function Shop() {
               </div>
             </div>
             
-            {/* Products grid */}
             <div className="flex-1">
-              {/* Active filters display */}
               {(selectedBrands.length > 0 || category !== 'all' || arModelsOnly || inStockOnly || 
-                priceRange[0] > 0 || priceRange[1] < 10000000) && (
+                priceRange[0] > 0 || priceRange[1] < 100000000000) && (
                 <div className="mb-4 flex flex-wrap gap-2 items-center">
                   <span className="text-sm text-gray-500">Active filters:</span>
                   {category !== 'all' && (
@@ -846,12 +858,12 @@ export default function Shop() {
                       />
                     </Badge>
                   ))}
-                  {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
+                  {(priceRange[0] > 0 || priceRange[1] < 100000000000) && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       {priceRange[0].toLocaleString('vi-VN')} ₫ - {priceRange[1].toLocaleString('vi-VN')} ₫
                       <X 
                         className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setPriceRange([0, 10000000])}
+                        onClick={() => setPriceRange([0, 100000000000])}
                       />
                     </Badge>
                   )}
@@ -884,7 +896,6 @@ export default function Shop() {
                 </div>
               )}
               
-              {/* Count and results info */}
               <div className="mb-6 text-sm text-gray-500">
                 {!isLoading && (
                   <p>
@@ -897,7 +908,7 @@ export default function Shop() {
               
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Loading skeletons */}
+           
                   {Array(8).fill(0).map((_, index) => (
                     <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
                       <div className="h-64 bg-gray-200 animate-pulse" />
@@ -912,7 +923,7 @@ export default function Shop() {
                 </div>
               ) : sortedWatches && sortedWatches.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Product cards with AR */}
+       
                   {sortedWatches.map((watch) => (
                     <ProductCard key={watch.id} watch={watch} />
                   ))}

@@ -40,33 +40,33 @@ export default function Register() {
   
   async function onSubmit(data: FormValues) {
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data), 
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
+        console.log("Registration error:", result);
         throw new Error(result.message || 'Registration failed');
       }
-      
-      // Success - show toast and redirect
+
       toast({
         title: "Registration successful",
         description: "Your account has been created. Welcome to WatchAR!",
       });
-      
-      // Redirect to login page
-      navigate("/login");
-      
+
+ 
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     } catch (error) {
-      // Show error toast
       toast({
         title: "Registration failed",
         description: error instanceof Error ? error.message : "Please check your information and try again",
@@ -204,11 +204,12 @@ export default function Register() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
-                <Link href="/login">
-                  <a className="text-primary hover:underline font-medium">
-                    Sign in
-                  </a>
-                </Link>
+                <span
+                  className="text-primary hover:underline font-medium cursor-pointer"
+                  onClick={() => window.location.href = "/login"}
+                >
+                  Sign in
+                </span>
               </p>
             </div>
           </div>

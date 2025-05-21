@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Meta tags for SEO -->
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Experience AR technology with our Watch AR Store. Try on watches virtually and shop with ease." />
@@ -16,30 +16,32 @@
     <meta name="twitter:description" content="Experience AR technology with our Watch AR Store. Try on watches virtually and shop with ease." />
     <meta name="twitter:image" content="/assets/twitter-image.jpg" />
 
-    <!-- Title -->
+
     <title>Watch AR Store - Try Watches in AR</title>
 
-    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="/styles/main.css" />
+    
+     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="gesture-detector.js"></script>
+    <script src="gesture-handler.js"></script>
+  </head>
 
-    <!-- AR.js and A-Frame -->
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.min.js"></script>
+  <body>
+  
     <script>
       console.log('AFRAME after AR.js script in head:', window.AFRAME);
     </script>
   </head>
-  <body class="bg-gray-100 text-gray-900 font-sans">
-    <!-- Main Content -->
-    <div id="root"></div>
+  <body class="bg-gray-100 text-gray-900 font-sans font-inter min-h-screen">
+  
+    <div id="root" class="mx-auto max-w-screen-lg px-4"></div>
 
-    <!-- React App -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

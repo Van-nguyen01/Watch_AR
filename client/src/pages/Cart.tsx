@@ -1,34 +1,48 @@
+import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
-import { useState } from "react";
-
-// This would normally come from a cart context/state
-const initialCartItems: CartItem[] = [
-  // Empty array to simulate an empty cart initially
-  // In a real app, this would be populated from localStorage or API
-];
 
 type CartItem = {
   id: number;
+  watchId: number;
   name: string;
-  brand: string;
+  brand?: string;
   price: number;
-  imageUrl: string;
+  image_url: string;
   quantity: number;
 };
 
 export default function Cart() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
-  
-  // Calculate cart totals
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const userId = localStorage.getItem("userId") || 1;
+
+  useEffect(() => {
+    fetch(`/api/cart?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!Array.isArray(data)) {
+          setCartItems([]);
+        } else {
+          setCartItems(data);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setCartItems([]);
+        setLoading(false);
+      });
+  }, [userId]);
+
+
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shipping = subtotal > 0 ? 10 : 0; // Free shipping over $100 could be implemented here
+  const shipping = subtotal > 0 ? 10 : 0; 
   const total = subtotal + shipping;
-  
-  // Update quantity handler
+
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity < 1) return;
     
@@ -38,13 +52,43 @@ export default function Cart() {
       )
     );
   };
-  
-  // Remove item handler
+
   const removeItem = (id: number) => {
     setCartItems(items => items.filter(item => item.id !== id));
   };
   
-  // Empty cart UI
+  const addToCart = async (watchId: number, quantity: number = 1) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, watchId, quantity }),
+      });
+      
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const data = await response.json();
+      console.log('Add to cart response:', data);
+
+      setCartItems(items => {
+        const itemExists = items.find(item => item.watchId === watchId);
+        if (itemExists) {
+          return items.map(item => 
+            item.watchId === watchId ? { ...item, quantity: item.quantity + quantity } : item
+          );
+        } else {
+          return [...items, { id: data.id, watchId, quantity, ...data.watch }];
+        }
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+  
+  if (loading) return <div>Loading...</div>;
+
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col">
@@ -94,7 +138,7 @@ export default function Cart() {
                   <div className="col-span-6 flex gap-3 items-center">
                     <div className="h-20 w-20 bg-gray-100 rounded overflow-hidden">
                       <img 
-                        src={item.imageUrl} 
+                        src={item.image_url} 
                         alt={item.name} 
                         className="h-full w-full object-cover"
                       />
@@ -108,7 +152,7 @@ export default function Cart() {
                   {/* Price */}
                   <div className="col-span-2 text-center">
                     <div className="sm:hidden text-sm text-gray-500 mb-1">Price</div>
-                    ${item.price.toFixed(2)}
+                    {item.price.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
                   </div>
                   
                   {/* Quantity */}
@@ -135,7 +179,9 @@ export default function Cart() {
                   <div className="col-span-2 text-center flex justify-between sm:justify-center items-center">
                     <div className="sm:hidden text-sm text-gray-500">Total</div>
                     <div className="flex items-center gap-3">
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      <span>
+                        {(item.price * item.quantity).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+                      </span>
                       <button 
                         onClick={() => removeItem(item.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors"
@@ -167,15 +213,15 @@ export default function Cart() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{subtotal.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>${shipping.toFixed(2)}</span>
+                  <span>{shipping.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3 flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{total.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</span>
                 </div>
               </div>
               

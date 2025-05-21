@@ -12,8 +12,9 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   server: {
     host: "0.0.0.0",
+    port: 5000, 
     hmr: {
-      clientPort: 5000, // Sử dụng cổng 5000 thay vì 443
+      clientPort: 5000, 
       overlay: false,
     },
   },

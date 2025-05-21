@@ -15,17 +15,16 @@ import { CreditCard, Check } from "lucide-react";
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  
-  // This would normally come from a cart context/state
+
   const cartTotal = 0;
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Process payment
+
     navigate("/order-success");
   };
   
-  // Empty cart or no items
+
   if (cartTotal <= 0) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col">

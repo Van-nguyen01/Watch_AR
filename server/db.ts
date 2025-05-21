@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 import * as schema from "@shared/schema";
 
-// Cấu hình kết nối MySQL
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -12,7 +12,6 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// Kiểm tra kết nối
 pool.getConnection()
     .then(connection => {
         console.log('Đã kết nối thành công đến MySQL');
@@ -23,7 +22,7 @@ pool.getConnection()
     });
 
 export const db = {
-    // USERS
+
     async getUsers() {
         const [rows] = await pool.execute('SELECT * FROM users') as [any[], any];
         return rows;
@@ -58,7 +57,7 @@ export const db = {
         return true;
     },
 
-    // WATCHES
+
     async getWatches(category?: string) {
         if (category && category !== 'all') {
             const [rows] = await pool.execute(
@@ -92,7 +91,6 @@ export const db = {
         return true;
     },
 
-    // ORDERS
     async getUserOrders(userId: number) {
         const [rows] = await pool.execute('SELECT * FROM orders WHERE user_id = ?', [userId]) as [any[], any];
         return rows;
@@ -113,7 +111,6 @@ export const db = {
         return db.getOrderById(id);
     },
 
-    // ORDER ITEMS
     async getOrderItems(orderId: number) {
         const [rows] = await pool.execute('SELECT * FROM order_items WHERE order_id = ?', [orderId]) as [any[], any];
         return rows;
@@ -126,7 +123,7 @@ export const db = {
         return { id: result.insertId, ...orderItem };
     },
 
-    // WAITLIST
+
     async getWaitlistSignups() {
         const [rows] = await pool.execute('SELECT * FROM waitlist_signups') as [any[], any];
         return rows;
@@ -143,7 +140,6 @@ export const db = {
         return { id: result.insertId, ...signup };
     },
 
-    // ASSETS (for AR models)
     async getARModels() {
         const [rows] = await pool.execute(
             'SELECT * FROM assets WHERE category = "model-3d"'
@@ -171,7 +167,46 @@ export const db = {
     async deleteAsset(id: number) {
         await pool.execute('DELETE FROM assets WHERE id = ?', [id]);
         return true;
-    }
+    },
+
+    async addToCart(userId: number, watchId: number, quantity: number = 1) {
+        try {
+          
+            const [carts] = await pool.execute('SELECT id FROM cart WHERE user_id = ?', [userId]) as [any[], any];
+            let cartId: number;
+            if (carts.length === 0) {
+                const [result] = await pool.execute('INSERT INTO cart (user_id) VALUES (?)', [userId]) as [mysql.ResultSetHeader, any];
+                cartId = result.insertId;
+            } else {
+                cartId = carts[0].id;
+            }
+
+            const [items] = await pool.execute('SELECT id, quantity FROM cart_items WHERE cart_id = ? AND watch_id = ?', [cartId, watchId]) as [any[], any];
+            if (items.length === 0) {
+                await pool.execute('INSERT INTO cart_items (cart_id, watch_id, quantity) VALUES (?, ?, ?)', [cartId, watchId, quantity]);
+            } else {
+                await pool.execute('UPDATE cart_items SET quantity = quantity + ? WHERE id = ?', [quantity, items[0].id]);
+            }
+        } catch (err) {
+            console.error('addToCart error:', err);
+            throw err;
+        }
+    },
+    async getCartItemsByUserId(userId: number) {
+
+        const [carts] = await pool.execute('SELECT id FROM cart WHERE user_id = ?', [userId]) as [any[], any];
+        if (carts.length === 0) return [];
+        const cartId = carts[0].id;
+
+        const [items] = await pool.execute(
+            `SELECT ci.id, ci.quantity, w.id as watchId, w.name, w.price, w.image_url
+             FROM cart_items ci
+             JOIN watches w ON ci.watch_id = w.id
+             WHERE ci.cart_id = ?`,
+            [cartId]
+        ) as [any[], any];
+        return items;
+    },
 };
 
 export { pool };

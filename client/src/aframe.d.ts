@@ -18,10 +18,10 @@ declare global {
       'a-text': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { [key: string]: any };
       'a-assets': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { [key: string]: any };
       'a-asset-item': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { [key: string]: any };
-      // Thêm các thẻ A-Frame khác nếu bạn sử dụng chúng
+      'a-nft': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { [key: string]: any };
+
     }
   }
 }
 
-// Export một giá trị rỗng để TypeScript coi đây là một module
 export {}; 

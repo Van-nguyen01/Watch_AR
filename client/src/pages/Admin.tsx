@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AssetUploadForm } from "@/components/AssetUploadForm";
 import type { Watch, User } from "@shared/schema";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 export default function Admin() {
+  useAuthGuard("admin");
   const [watches, setWatches] = useState<Watch[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [editingWatch, setEditingWatch] = useState<Watch | null>(null);
@@ -12,7 +14,6 @@ export default function Admin() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [uploadType, setUploadType] = useState<"image" | "model" | null>(null);
 
-  // Lấy danh sách sản phẩm và user
   useEffect(() => {
     fetch("/api/watches").then(res => res.json()).then(setWatches);
     fetch("/api/users").then(res => res.json()).then(setUsers);
@@ -22,7 +23,7 @@ export default function Admin() {
     fetch("/api/watches", {
       method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`, // Send the token with the request
+        'Authorization': `Bearer ${token}`, 
       },
     })
       .then(res => res.json())
@@ -31,18 +32,18 @@ export default function Admin() {
     fetch("/api/users", {
       method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`, // Send the token with the request
+        'Authorization': `Bearer ${token}`, 
       },
     })
       .then(res => res.json())
       .then(setUsers);
   } else {
-    // Handle case where token is missing
+    
     console.log('No token found');
   }
   }, []);
 
-  // Xóa sản phẩm
+
   const deleteWatch = (id: number) => {
     if (window.confirm("Xóa sản phẩm này?")) {
       fetch(`/api/watches/${id}`, { method: "DELETE" })
@@ -50,7 +51,6 @@ export default function Admin() {
     }
   };
 
-  // Xóa user
   const deleteUser = (id: number) => {
     if (window.confirm("Xóa người dùng này?")) {
       fetch(`/api/users/${id}`, { method: "DELETE" })
@@ -58,12 +58,11 @@ export default function Admin() {
     }
   };
 
-  // Thêm/sửa sản phẩm
+
   const handleSaveWatch = async (e: any) => {
     e.preventDefault();
     const form = e.target;
 
-    // 1. Upload ảnh nếu có
     let imageUrl = form.imageUrl.value;
     const imageFile = form.imageFile.files[0];
     if (imageFile) {
@@ -78,7 +77,7 @@ export default function Admin() {
       imageUrl = uploaded.fileUrl || uploaded.publicUrl || imageUrl;
     }
 
-    // 2. Upload model nếu có
+
     let modelUrl = form.modelUrl.value;
     const modelFile = form.modelFile.files[0];
     if (modelFile) {
@@ -93,7 +92,7 @@ export default function Admin() {
       modelUrl = uploaded.fileUrl || uploaded.publicUrl || modelUrl;
     }
 
-    // 3. Tạo dữ liệu sản phẩm
+  
     const data = {
       name: form.name.value,
       brand: form.brand.value,
@@ -105,7 +104,7 @@ export default function Admin() {
       inStock: form.inStock.checked,
     };
 
-    // 4. Gửi request tạo/sửa sản phẩm như cũ
+
     if (editingWatch) {
       fetch(`/api/watches/${editingWatch.id}`, {
         method: "PATCH",
@@ -131,7 +130,7 @@ export default function Admin() {
     }
   };
 
-  // Hiển thị form thêm/sửa sản phẩm
+
   const renderWatchForm = () => (
     <form onSubmit={handleSaveWatch} className="mb-6 space-y-2">
       <Input name="name" placeholder="Tên sản phẩm" defaultValue={editingWatch?.name || ""} required />
@@ -156,7 +155,7 @@ export default function Admin() {
     </form>
   );
 
-  // Quản lý model 3D cho sản phẩm
+  
   const handleShowUpload = (productId: number, type: "image" | "model") => {
     setSelectedProductId(productId);
     setUploadType(type);

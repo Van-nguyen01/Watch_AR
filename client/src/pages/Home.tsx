@@ -5,9 +5,12 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Watch, ShoppingBag, Clock, Zap, CheckCircle } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+
 
 export default function Home() {
-  // Fetch featured watches
+  useAuthGuard();
+
   const { data: featuredWatches, isLoading } = useQuery({
     queryKey: ['/api/watches'],
     queryFn: async () => {
@@ -44,17 +47,19 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="md:w-1/2 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+            <div className="md:w-1/2 flex justify-center items-center relative">
+              <div className="relative w-[350px] h-[350px] rounded-2xl overflow-hidden shadow-2xl bg-white flex items-center justify-center">
+               
                 <img 
-                  src="/images/hero-watch-ar.jpg" 
+                  src="/images/Motana.webp" 
                   alt="Watch AR Demo" 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Button variant="outline" size="lg" className="bg-white/80 hover:bg-white">
+                <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center">
+                  <Button variant="outline" size="lg" className="bg-white/80 hover:bg-white mb-2">
                     Watch Demo
                   </Button>
+                  <span className="text-white text-sm">Xem thử tính năng AR trực tiếp!</span>
                 </div>
               </div>
             </div>

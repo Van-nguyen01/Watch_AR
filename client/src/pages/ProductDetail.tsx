@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-// Type for watch
+
 type Watch = {
   id: number;
   name: string;
@@ -72,7 +72,7 @@ export function ARView({ modelUrl, onClose }: ARViewProps) {
 }
 
 export default function ProductDetail() {
-  // Get the watch ID from the URL
+
   const [, params] = useRoute("/product/:id");
   const watchId = params?.id ? parseInt(params.id) : null;
   const [, navigate] = useLocation();
@@ -80,22 +80,29 @@ export default function ProductDetail() {
   
   const [quantity, setQuantity] = useState(1);
   
-  // Fetch the watch details
+  
   const { data: watch, isLoading, error } = useQuery({
     queryKey: ['/api/watches', watchId],
     queryFn: async () => {
       if (!watchId) throw new Error('Invalid watch ID');
-      
       const res = await fetch(`/api/watches/${watchId}`);
       if (!res.ok) throw new Error('Failed to fetch watch details');
-      return res.json() as Promise<Watch>;
+      const data = await res.json();
+    
+      return {
+        ...data,
+        imageUrl: (data.image_url || "").startsWith('http')
+          ? data.image_url
+          : `http://localhost:5000${data.image_url || ""}`,
+        modelUrl: data.model_url,
+        inStock: Boolean(data.in_stock),
+      };
     },
     enabled: !!watchId,
   });
   
-  // Handle adding to cart
   const handleAddToCart = () => {
-    // In a real app, this would add to a cart context/state
+    
     toast({
       title: "Added to cart",
       description: `${watch?.name} (Qty: ${quantity}) has been added to your cart.`,
@@ -184,7 +191,7 @@ export default function ProductDetail() {
           <div className="md:w-1/2">
             <div className="bg-white rounded-lg overflow-hidden shadow-md">
               <img 
-                src={watch.imageUrl} 
+                src={watch.imageUrl || watch.imageUrl} 
                 alt={watch.name} 
                 className="w-full h-auto object-cover"
               />
@@ -197,7 +204,7 @@ export default function ProductDetail() {
             <p className="text-xl text-gray-600 mb-4">{watch.brand}</p>
             
             <div className="text-2xl font-bold text-primary mb-6">
-              ${watch.price.toFixed(2)}
+              {watch.price.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
             </div>
             
             <p className="text-gray-600 mb-6">

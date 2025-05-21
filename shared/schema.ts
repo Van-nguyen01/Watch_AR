@@ -63,6 +63,20 @@ export const assets = mysqlTable("assets", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const cart = mysqlTable("cart", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const cartItems = mysqlTable("cart_items", {
+  id: int("id").primaryKey().autoincrement(),
+  cartId: int("cart_id").notNull().references(() => cart.id),
+  watchId: int("watch_id").notNull().references(() => watches.id),
+  quantity: int("quantity").notNull().default(1),
+  addedAt: timestamp("added_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -113,6 +127,16 @@ export const insertAssetSchema = createInsertSchema(assets).pick({
   publicUrl: true,
 });
 
+export const insertCartSchema = createInsertSchema(cart).pick({
+  userId: true,
+});
+
+export const insertCartItemSchema = createInsertSchema(cartItems).pick({
+  cartId: true,
+  watchId: true,
+  quantity: true,
+});
+
 // Form schemas
 export const loginFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -148,3 +172,7 @@ export type InsertWaitlistSignup = z.infer<typeof insertWaitlistSignupSchema>;
 export type WaitlistSignup = typeof waitlistSignups.$inferSelect;
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
 export type Asset = typeof assets.$inferSelect;
+export type InsertCart = z.infer<typeof insertCartSchema>;
+export type Cart = typeof cart.$inferSelect;
+export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+export type CartItem = typeof cartItems.$inferSelect;
