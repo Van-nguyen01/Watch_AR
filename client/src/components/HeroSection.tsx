@@ -75,7 +75,7 @@ export function HeroSection() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
           </div>
           
-          {/* Stats */}
+          
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-3xl mx-auto -mt-8 relative z-10">
             <div className="bg-white rounded-lg shadow-lg p-6 text-center transform hover:-translate-y-1 transition-transform">
               <div className="text-2xl md:text-3xl font-bold text-primary mb-1">5000+</div>

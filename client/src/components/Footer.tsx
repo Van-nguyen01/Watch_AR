@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-200">
-      <div className="container py-12">
+      <div className="container py-12" style={{ paddingLeft: "3rem", paddingRight: "3rem" }}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Column 1: Logo and About */}
+          
           <div>
             <Logo className="text-white mb-4" />
             <p className="text-gray-400 mb-6">
@@ -31,7 +31,7 @@ export function Footer() {
             </div>
           </div>
           
-          {/* Column 2: Quick Links */}
+          
           <div>
             <h3 className="text-lg font-medium mb-4">Quick Links</h3>
             <ul className="space-y-2">
@@ -63,7 +63,7 @@ export function Footer() {
             </ul>
           </div>
           
-          {/* Column 3: Contact */}
+          
           <div>
             <h3 className="text-lg font-medium mb-4">Contact Us</h3>
             <ul className="space-y-3">
@@ -86,7 +86,7 @@ export function Footer() {
             </ul>
           </div>
           
-          {/* Column 4: Newsletter */}
+          
           <div>
             <h3 className="text-lg font-medium mb-4">Newsletter</h3>
             <p className="text-gray-400 mb-4">

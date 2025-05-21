@@ -21,27 +21,22 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-    <link rel="stylesheet" href="/styles/main.css" />
     
-     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="/styles/main.css" />
+
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="gesture-detector.js"></script>
     <script src="gesture-handler.js"></script>
   </head>
-
-  <body>
-  
+  <body class="bg-gradient-to-br from-gray-100 via-blue-50 to-purple-100 text-gray-900 font-sans font-inter min-h-screen">
     <script>
       console.log('AFRAME after AR.js script in head:', window.AFRAME);
+      console.log('Truy cập trang tại: http://localhost:' + window.location.port + window.location.pathname);
     </script>
-  </head>
-  <body class="bg-gray-100 text-gray-900 font-sans font-inter min-h-screen">
-  
-    <div id="root" class="mx-auto max-w-screen-lg px-4"></div>
-
+    <div id="root" class="mx-auto max-w-[1440px] px-4 py-9"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

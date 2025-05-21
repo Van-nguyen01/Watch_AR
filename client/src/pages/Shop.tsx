@@ -277,15 +277,15 @@ function ProductCard({ watch }: { watch: Watch }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative group">
-      <div className="h-64 overflow-hidden relative">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
+      <div className="h-56 flex items-center justify-center bg-gray-50 relative">
         <img
           src={watch.imageUrl}
           alt={watch.name}
           onError={(e) => {
             e.currentTarget.src = "/uploads/images/default.jpg";
           }}
-          className="w-full h-full object-cover"
+          className="max-h-44 w-auto object-contain"
         />
         {/* Category badge */}
         <div className="absolute top-2 left-2">
@@ -295,30 +295,31 @@ function ProductCard({ watch }: { watch: Watch }) {
         </div>
       </div>
 
-      <div className="p-6">
-        <div className="mb-4">
-          <h3 className="text-xl font-medium mb-1">{watch.name}</h3>
-          <p className="text-gray-500">{watch.brand}</p>
+      <div className="p-4 flex flex-col flex-1">
+        <div className="mb-2">
+          <h3 className="text-base font-semibold mb-1 line-clamp-2">{watch.name}</h3>
+          <p className="text-xs text-gray-500 line-clamp-1">{watch.brand}</p>
         </div>
-       
-        <div className="mb-4 flex justify-center">
-          <Link to={`/try-on/${watch.id}`}>
-            <Button size="sm" variant="default">
-              Try On
-            </Button>
-          </Link>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-lg font-bold">
-            {watch.price.toLocaleString("vi-VN")} ₫
-          </span>
-          <div className="flex gap-2">
-            <Link to={`/product/${watch.id}`}>
-              <Button size="sm" variant="outline">View</Button>
+        <div className="flex-1 flex flex-col justify-end">
+          <div className="mb-3 flex justify-center">
+            <Link to={`/try-on/${watch.id}`}>
+              <Button size="sm" variant="default">
+                Try On
+              </Button>
             </Link>
-            <Button size="sm" variant="outline" onClick={handleAddToCart}>
-              Add to Cart
-            </Button>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-base font-bold whitespace-nowrap">
+              {watch.price.toLocaleString("vi-VN")} ₫
+            </span>
+            <div className="flex gap-2">
+              <Link to={`/product/${watch.id}`}>
+                <Button size="sm" variant="outline">View</Button>
+              </Link>
+              <Button size="sm" variant="outline" onClick={handleAddToCart}>
+                Add to Cart
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -337,13 +338,13 @@ export default function Shop() {
 
   const [category, setCategory] = useState<string>(initialCategory);
   const [sortBy, setSortBy] = useState<string>("default");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [arModelsOnly, setArModelsOnly] = useState<boolean>(false);
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   
-  // Đồng bộ state filter với URL mỗi khi location.search thay đổi
+
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     setCategory(urlParams.get('category') || 'all');
@@ -439,7 +440,7 @@ export default function Shop() {
     if (category !== 'all') newParams.set('category', category);
     if (selectedBrands.length > 0) newParams.set('brands', selectedBrands.join(','));
     if (priceRange[0] > 0) newParams.set('minPrice', priceRange[0].toString());
-    if (priceRange[1] < 100000000000) newParams.set('maxPrice', priceRange[1].toString());
+    if (priceRange[1] < 100000000) newParams.set('maxPrice', priceRange[1].toString());
     if (arModelsOnly) newParams.set('arOnly', 'true');
     if (inStockOnly) newParams.set('inStock', 'true');
     
@@ -450,7 +451,7 @@ export default function Shop() {
     navigate(newLocation);
   };
   
-  // Handle category change
+ 
   const handleCategoryChange = (value: string) => {
     setCategory(value);
     updateUrlWithFilters();
@@ -459,7 +460,7 @@ export default function Shop() {
 
   const resetFilters = () => {
     setCategory('all');
-    setPriceRange([0, 100000000000]);
+    setPriceRange([0, 100000000]);
     setSelectedBrands([]);
     setArModelsOnly(false);
     setInStockOnly(false);
@@ -486,200 +487,11 @@ export default function Shop() {
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col">
       <Header />
       <main className="flex-grow">
-        <div className="container py-8">
-    
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Watch Collection</h1>
-              <p className="text-gray-600">
-                Browse our collection of premium watches with AR try-on
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-      
-              <div className="block md:hidden w-full">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-between"
-                      onClick={() => setShowFilters(true)}
-                    >
-                      <div className="flex items-center">
-                        <Sliders className="mr-2 h-4 w-4" />
-                        Filters
-                      </div>
-                      <Badge className="ml-2">
-                        {selectedBrands.length + (category !== 'all' ? 1 : 0) + 
-                         (arModelsOnly ? 1 : 0) + (inStockOnly ? 1 : 0) + 
-                         ((priceRange[0] > 0 || priceRange[1] < 100000000000) ? 1 : 0)}
-                      </Badge>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 sm:w-96">
-                    <SheetHeader>
-                      <SheetTitle className="flex items-center">
-                        <Sliders className="mr-2 h-5 w-5" />
-                        Filter Watches
-                      </SheetTitle>
-                      <SheetDescription>
-                        Refine your search with multiple filters
-                      </SheetDescription>
-                    </SheetHeader>
-                    
-                    <div className="py-4 flex flex-col gap-5">
-               
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Category</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['all', 'luxury', 'sport', 'casual'].map((cat) => (
-                            <div 
-                              key={cat}
-                              className={cn(
-                                "px-3 py-2 border rounded-md text-center cursor-pointer transition-colors",
-                                category === cat 
-                                  ? "border-primary bg-primary/10 text-primary" 
-                                  : "border-gray-200 hover:border-gray-300"
-                              )}
-                              onClick={() => setCategory(cat)}
-                            >
-                              {cat === 'all' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                   
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-medium">Price Range</h3>
-                          <span className="text-sm text-gray-500">
-                            {priceRange[0].toLocaleString('vi-VN')} ₫ - {priceRange[1].toLocaleString('vi-VN')} ₫
-                          </span>
-                        </div>
-                        <Slider
-                          min={0}
-                          max={100000000000}
-                          step={100000}
-                          value={priceRange}
-                          onValueChange={(value) => setPriceRange(value as [number, number])}
-                          className="my-4"
-                        />
-                        <div className="flex justify-between">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={priceRange[1]}
-                            value={priceRange[0]}
-                            onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                            className="w-20"
-                          />
-                          <Input
-                            type="number"
-                            min={priceRange[0]}
-                            max={100000000000}
-                            value={priceRange[1]}
-                            onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                            className="w-20"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Brand filter */}
-                      <div>
-                        <h3 className="text-sm font-medium mb-3">Brands</h3>
-                        <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                          {availableBrands.map((brand) => (
-                            <div key={brand} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`brand-${brand}`}
-                                checked={selectedBrands.includes(brand)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedBrands([...selectedBrands, brand]);
-                                  } else {
-                                    setSelectedBrands(selectedBrands.filter(b => b !== brand));
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor={`brand-${brand}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {brand}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                   
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium mb-3">Additional Filters</h3>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="ar-models-only-mobile"
-                            checked={arModelsOnly}
-                            onCheckedChange={(checked) => setArModelsOnly(checked as boolean)}
-                          />
-                          <label
-                            htmlFor="ar-models-only-mobile"
-                            className="text-sm font-medium leading-none"
-                          >
-                            AR Compatible Only
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="in-stock-only-mobile"
-                            checked={inStockOnly}
-                            onCheckedChange={(checked) => setInStockOnly(checked as boolean)}
-                          />
-                          <label
-                            htmlFor="in-stock-only-mobile"
-                            className="text-sm font-medium leading-none"
-                          >
-                            In Stock Only
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 mt-6">
-                      <Button onClick={applyFilters}>
-                        Apply Filters
-                      </Button>
-                      <Button variant="outline" onClick={resetFilters}>
-                        Reset Filters
-                      </Button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-              
-              <div className="w-full sm:w-48">
-                <Select 
-                  value={sortBy} 
-                  onValueChange={setSortBy}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Featured</SelectItem>
-                    <SelectItem value="price-low-to-high">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high-to-low">Price: High to Low</SelectItem>
-                    <SelectItem value="name-a-z">Name: A to Z</SelectItem>
-                    <SelectItem value="name-z-a">Name: Z to A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row gap-8">
-  
-            <div className="hidden md:block w-64 flex-shrink-0">
-              <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row gap-8 items-stretch">
+           
+            <div className="hidden md:block w-72 flex-shrink-0">
+              <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24 min-h-[500px]">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold">Filters</h2>
                   <Button 
@@ -734,7 +546,7 @@ export default function Shop() {
                         </div>
                         <Slider
                           min={0}
-                          max={100000000000}
+                          max={100000000}
                           step={100000}
                           value={priceRange}
                           onValueChange={(value) => setPriceRange(value as [number, number])}
@@ -751,7 +563,7 @@ export default function Shop() {
                           <Input
                             type="number"
                             min={priceRange[0]}
-                            max={100000000000}
+                            max={100000000}
                             value={priceRange[1]}
                             onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                             className="w-full"
@@ -837,7 +649,7 @@ export default function Shop() {
             
             <div className="flex-1">
               {(selectedBrands.length > 0 || category !== 'all' || arModelsOnly || inStockOnly || 
-                priceRange[0] > 0 || priceRange[1] < 100000000000) && (
+                priceRange[0] > 0 || priceRange[1] < 100000000) && (
                 <div className="mb-4 flex flex-wrap gap-2 items-center">
                   <span className="text-sm text-gray-500">Active filters:</span>
                   {category !== 'all' && (
@@ -858,12 +670,12 @@ export default function Shop() {
                       />
                     </Badge>
                   ))}
-                  {(priceRange[0] > 0 || priceRange[1] < 100000000000) && (
+                  {(priceRange[0] > 0 || priceRange[1] < 100000000) && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       {priceRange[0].toLocaleString('vi-VN')} ₫ - {priceRange[1].toLocaleString('vi-VN')} ₫
                       <X 
                         className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setPriceRange([0, 100000000000])}
+                        onClick={() => setPriceRange([0, 100000000])}
                       />
                     </Badge>
                   )}
@@ -907,10 +719,10 @@ export default function Shop() {
               </div>
               
               {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
            
                   {Array(8).fill(0).map((_, index) => (
-                    <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div key={index} className="bg-white rounded-lg shadow-md flex flex-col h-full p-6 overflow-visible">
                       <div className="h-64 bg-gray-200 animate-pulse" />
                       <div className="p-6">
                         <div className="h-6 bg-gray-200 rounded animate-pulse mb-2 w-3/4" />
@@ -922,7 +734,7 @@ export default function Shop() {
                   ))}
                 </div>
               ) : sortedWatches && sortedWatches.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
        
                   {sortedWatches.map((watch) => (
                     <ProductCard key={watch.id} watch={watch} />

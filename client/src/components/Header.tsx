@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { Menu, X, User, ShoppingCart, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = window.location.pathname;
+  const navigate = useNavigate();
   
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -29,10 +31,14 @@ export function Header() {
     <header className="bg-white shadow-sm relative z-10">
       <div className="container py-4 px-6 md:px-8">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Logo />
-          
-          {/* Desktop Navigation */}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="p-0 m-0 bg-transparent border-none cursor-pointer"
+            aria-label="Go to home"
+          >
+            <Logo />
+          </button>
           <nav className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
               <Link
